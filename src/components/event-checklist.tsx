@@ -119,6 +119,17 @@ export function EventChecklist({ eventId }: { eventId: string }) {
   const nameOf = (id: string | null) => profiles.find((profile) => profile.id === id)?.name ?? null;
   const hasChildren = (id: string) => tasks.some((task) => task.parent_task_id === id);
 
+  function startAdding(taskParentId = "") {
+    setTitle("");
+    setResponsible("");
+    setParentId(taskParentId);
+    setAdding(true);
+
+    window.setTimeout(() => {
+      document.getElementById("new-task-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+  }
+
   function beginEditing(task: TaskRow) {
     setEditingId(task.id);
     setEditTitle(task.title);
@@ -260,10 +271,17 @@ export function EventChecklist({ eventId }: { eventId: string }) {
       <div className="mb-8 flex items-center justify-between border-b border-foreground/10 pb-4">
         <h2 className="font-display text-xl font-medium">Checklist</h2>
         <button
-          onClick={() => setAdding((value) => !value)}
+          onClick={() => {
+            if (adding) {
+              setAdding(false);
+              setParentId("");
+            } else {
+              startAdding();
+            }
+          }}
           className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-widest text-accent"
         >
-          <Plus className="size-3" /> Adicionar tarefa
+          <Plus className="size-3" /> {adding ? "Cancelar" : "Adicionar tarefa"}
         </button>
       </div>
 
@@ -278,18 +296,24 @@ export function EventChecklist({ eventId }: { eventId: string }) {
 
       {adding ? (
         <form
+          id="new-task-form"
           className="mb-8 flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border p-4"
           onSubmit={(e) => {
             e.preventDefault();
             if (title.trim()) createTask.mutate();
           }}
         >
+          {parentId ? (
+            <div className="w-full text-xs font-medium text-muted-foreground">
+              Nova subtarefa de: <span className="text-foreground">{parents.find((task) => task.id === parentId)?.title}</span>
+            </div>
+          ) : null}
           <input
             autoFocus
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Nome da tarefa"
+            placeholder={parentId ? "Nome da subtarefa" : "Nome da tarefa"}
             className={cn(inputClass, "min-w-48 flex-1")}
           />
           <select
@@ -348,6 +372,13 @@ export function EventChecklist({ eventId }: { eventId: string }) {
           {parents.map((task) => (
             <div key={task.id}>
               <TaskLine task={task} />
+              <button
+                type="button"
+                onClick={() => startAdding(task.id)}
+                className="ml-8 mt-2 flex items-center gap-1 text-[11px] font-medium text-accent hover:underline"
+              >
+                <Plus className="size-3" /> Adicionar subtarefa
+              </button>
               {tasks.filter((item) => item.parent_task_id === task.id).length > 0 ? (
                 <div className="ml-8 mt-4 space-y-3 border-l border-border pl-4">
                   {tasks
