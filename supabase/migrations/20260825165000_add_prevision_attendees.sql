@@ -1,0 +1,2 @@
+ALTER TABLE public.events
+ADD COLUMN IF NOT EXISTS prevision_attendees TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
