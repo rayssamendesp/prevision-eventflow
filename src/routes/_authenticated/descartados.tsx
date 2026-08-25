@@ -27,7 +27,12 @@ export const Route = createFileRoute("/_authenticated/descartados")({
 
 function DescartadosPage() {
   const queryClient = useQueryClient();
-  const { data: events = [], isLoading } = useQuery({
+  const {
+    data: events = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["events", "archived"],
     queryFn: () => fetchEvents(true),
   });
@@ -57,6 +62,16 @@ function DescartadosPage() {
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
+      ) : isError ? (
+        <div className="rounded-md border border-dashed border-border bg-foreground/[0.02] p-10 text-center">
+          <p className="text-sm text-muted-foreground">Não foi possível carregar os eventos descartados.</p>
+          <button
+            onClick={() => void refetch()}
+            className="mt-3 text-[11px] font-semibold uppercase tracking-widest text-accent hover:underline"
+          >
+            Tentar novamente
+          </button>
+        </div>
       ) : events.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-foreground/[0.02] p-10 text-center">
           <p className="label-caps">Nenhum evento descartado</p>

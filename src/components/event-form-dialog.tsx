@@ -25,6 +25,11 @@ type FormState = {
   notes: string;
 };
 
+type FormErrors = {
+  investment_value: string | undefined;
+  important_link: string | undefined;
+};
+
 function toForm(event?: EventRow | null): FormState {
   return {
     name: event?.name ?? "",
@@ -35,6 +40,65 @@ function toForm(event?: EventRow | null): FormState {
     important_link: event?.important_link ?? "",
     notes: event?.notes ?? "",
   };
+}
+
+function parseInvestment(input: string): { value: number | null; error?: string } {
+  let cleaned = input.trim().replace(/^R\$\s*/i, "").replace(/\s/g, "");
+  if (!cleaned) return { value: null };
+  if (!/^\d[\d.,]*$/.test(cleaned)) {
+    return { value: null, error: "Informe um valor monetário válido." };
+  }
+
+  const comma = cleaned.lastIndexOf(",");
+  const dot = cleaned.lastIndexOf(".");
+
+  if (comma !== -1 && dot !== -1) {
+    cleaned = comma > dot ? cleaned.replace(/\./g, "").replace(",", ".") : cleaned.replace(/,/g, "");
+  } else if (comma !== -1) {
+    const decimals = cleaned.length - comma - 1;
+    if (decimals < 1 || decimals > 2) {
+      return { value: null, error: "Informe um valor monetário válido." };
+    }
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if (dot !== -1) {
+    const parts = cleaned.split(".");
+    if (parts.length > 2) {
+      if (parts.slice(1).every((part) => part.length === 3)) {
+        cleaned = parts.join("");
+      } else {
+        return { value: null, error: "Informe um valor monetário válido." };
+      }
+    } else {
+      const decimals = parts[1]?.length ?? 0;
+      if (decimals === 3 && (parts[0]?.length ?? 0) <= 3) {
+        cleaned = parts.join("");
+      } else if (decimals < 1 || decimals > 2) {
+        return { value: null, error: "Informe um valor monetário válido." };
+      }
+    }
+  }
+
+  const value = Number(cleaned);
+  if (!Number.isFinite(value) || value < 0) {
+    return { value: null, error: "Informe um valor monetário válido." };
+  }
+  return { value };
+}
+
+function validateImportantLink(input: string): string | undefined {
+  const value = input.trim();
+  if (!value) return undefined;
+
+  try {
+    const url = new URL(value);
+    if ((url.protocol !== "http:" && url.protocol !== "https:") || !url.hostname) {
+      return "Use um link válido iniciado por http:// ou https://.";
+    }
+  } catch {
+    return "Use um link válido iniciado por http:// ou https://.";
+  }
+
+  return undefined;
 }
 
 export function EventFormDialog({
@@ -49,25 +113,35 @@ export function EventFormDialog({
   defaultDate?: string;
 }) {
   const [form, setForm] = useState<FormState>(toForm(event));
+  const [errors, setErrors] = useState<FormErrors>({
+    investment_value: undefined,
+    important_link: undefined,
+  });
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (open) {
       const base = toForm(event);
       setForm({ ...base, event_date: base.event_date || defaultDate || "" });
+      setErrors({ investment_value: undefined, important_link: undefined });
     }
   }, [open, event, defaultDate]);
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const raw = form.investment_value.replace(/\./g, "").replace(",", ".").trim();
+    mutationFn: async ({
+      investmentValue,
+      importantLink,
+    }: {
+      investmentValue: number | null;
+      importantLink: string | null;
+    }) => {
       const payload = {
         name: form.name.trim(),
         event_date: form.event_date,
         location: form.location.trim() || null,
         status: form.status,
-        investment_value: raw ? Number(raw) : null,
-        important_link: form.important_link.trim() || null,
+        investment_value: investmentValue,
+        important_link: importantLink,
         notes: form.notes.trim() || null,
       };
       if (event) {
@@ -102,7 +176,19 @@ export function EventFormDialog({
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            mutation.mutate();
+            const investment = parseInvestment(form.investment_value);
+            const linkError = validateImportantLink(form.important_link);
+            const nextErrors: FormErrors = {
+              investment_value: investment.error,
+              important_link: linkError,
+            };
+            setErrors(nextErrors);
+            if (investment.error || linkError) return;
+
+            mutation.mutate({
+              investmentValue: investment.value,
+              importantLink: form.important_link.trim() || null,
+            });
           }}
         >
           <div>
@@ -158,18 +244,36 @@ export function EventFormDialog({
               <input
                 className={inputClass}
                 placeholder="15000,00"
+                inputMode="decimal"
                 value={form.investment_value}
-                onChange={(e) => setForm({ ...form, investment_value: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, investment_value: e.target.value });
+                  if (errors.investment_value) {
+                    setErrors((current) => ({ ...current, investment_value: undefined }));
+                  }
+                }}
               />
+              {errors.investment_value ? (
+                <p className="mt-1 text-xs text-destructive">{errors.investment_value}</p>
+              ) : null}
             </div>
             <div>
               <label className="label-caps mb-1 block">Link importante</label>
               <input
                 className={inputClass}
                 placeholder="https://"
+                inputMode="url"
                 value={form.important_link}
-                onChange={(e) => setForm({ ...form, important_link: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, important_link: e.target.value });
+                  if (errors.important_link) {
+                    setErrors((current) => ({ ...current, important_link: undefined }));
+                  }
+                }}
               />
+              {errors.important_link ? (
+                <p className="mt-1 text-xs text-destructive">{errors.important_link}</p>
+              ) : null}
             </div>
           </div>
 
