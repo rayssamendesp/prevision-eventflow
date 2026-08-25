@@ -74,38 +74,43 @@ function EventosPage() {
   const [status, setStatus] = useState<"todos" | EventStatus>("todos");
   const [formOpen, setFormOpen] = useState(false);
 
-  const { data: events = [], isLoading } = useQuery({
+  const {
+    data: events = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["events", "active"],
     queryFn: () => fetchEvents(false),
   });
 
   const years = useMemo(() => {
     const set = new Set<number>([now.getFullYear(), year]);
-    events.forEach((e) => set.add(parseDate(e.event_date).getFullYear()));
+    events.forEach((event) => set.add(parseDate(event.event_date).getFullYear()));
     return [...set].sort();
   }, [events, year, now]);
 
   const filtered = useMemo(() => {
-    return events.filter((e) => {
-      const d = parseDate(e.event_date);
-      if (d.getFullYear() !== year || d.getMonth() !== month) return false;
-      if (status !== "todos" && e.status !== status) return false;
-      if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return events.filter((event) => {
+      const date = parseDate(event.event_date);
+      if (date.getFullYear() !== year || date.getMonth() !== month) return false;
+      if (status !== "todos" && event.status !== status) return false;
+      if (search && !event.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
   }, [events, year, month, status, search]);
 
   const monthCounts = useMemo(() => {
     const counts = new Array(12).fill(0) as number[];
-    events.forEach((e) => {
-      const d = parseDate(e.event_date);
-      if (d.getFullYear() === year) counts[d.getMonth()] += 1;
+    events.forEach((event) => {
+      const date = parseDate(event.event_date);
+      if (date.getFullYear() === year) counts[date.getMonth()] += 1;
     });
     return counts;
   }, [events, year]);
 
   const confirmedCount = events.filter(
-    (e) => e.status === "confirmado" && parseDate(e.event_date).getFullYear() === year,
+    (event) => event.status === "confirmado" && parseDate(event.event_date).getFullYear() === year,
   ).length;
 
   return (
@@ -121,9 +126,9 @@ function EventosPage() {
               onChange={(e) => setYear(Number(e.target.value))}
               className="cursor-pointer bg-transparent text-sm outline-none hover:text-foreground"
             >
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
+              {years.map((availableYear) => (
+                <option key={availableYear} value={availableYear}>
+                  {availableYear}
                 </option>
               ))}
             </select>
@@ -151,9 +156,9 @@ function EventosPage() {
             className="rounded-md border border-input bg-canvas px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="todos">Todos os status</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {STATUS_LABEL[option]}
               </option>
             ))}
           </select>
@@ -169,20 +174,20 @@ function EventosPage() {
 
       <nav className="mb-10 overflow-x-auto border-b border-border">
         <ul className="flex gap-8 pb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {MONTHS_SHORT.map((m, i) => (
-            <li key={m}>
+          {MONTHS_SHORT.map((label, index) => (
+            <li key={label}>
               <button
-                onClick={() => setMonth(i)}
+                onClick={() => setMonth(index)}
                 className={cn(
                   "relative transition-colors hover:text-foreground",
-                  i === month ? "text-foreground" : "",
+                  index === month ? "text-foreground" : "",
                 )}
               >
-                {m}
-                {monthCounts[i] ? (
-                  <span className="ml-1 text-[9px] text-subtle">{monthCounts[i]}</span>
+                {label}
+                {monthCounts[index] ? (
+                  <span className="ml-1 text-[9px] text-subtle">{monthCounts[index]}</span>
                 ) : null}
-                {i === month ? (
+                {index === month ? (
                   <span className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary" />
                 ) : null}
               </button>
@@ -197,6 +202,16 @@ function EventosPage() {
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando eventos...</p>
+      ) : isError ? (
+        <div className="rounded-md border border-dashed border-border bg-foreground/[0.02] p-10 text-center">
+          <p className="text-sm text-muted-foreground">Não foi possível carregar os eventos.</p>
+          <button
+            onClick={() => void refetch()}
+            className="mt-3 text-[11px] font-semibold uppercase tracking-widest text-accent hover:underline"
+          >
+            Tentar novamente
+          </button>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-foreground/[0.02] p-10 text-center">
           <p className="label-caps">Nenhum evento neste mês</p>
