@@ -107,6 +107,7 @@ function EventDetailPage() {
   }
 
   const value = formatCurrency(event.investment_value);
+  const attendees = event.prevision_attendees ?? [];
 
   return (
     <section className="mx-auto max-w-[1200px] px-6 py-10 lg:px-10 lg:py-12">
@@ -144,6 +145,21 @@ function EventDetailPage() {
                       </a>
                     </Field>
                   ) : null}
+                </div>
+              ) : null}
+              {attendees.length > 0 ? (
+                <div className="border-b border-border pb-6">
+                  <p className="label-caps mb-2">Representantes da Prevision</p>
+                  <div className="flex flex-wrap gap-2">
+                    {attendees.map((attendee, index) => (
+                      <span
+                        key={`${attendee}-${index}`}
+                        className="rounded-full bg-muted px-3 py-1 text-xs font-medium"
+                      >
+                        {attendee}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ) : null}
               {event.notes ? (

@@ -22,6 +22,7 @@ type FormState = {
   status: EventStatus;
   investment_value: string;
   important_link: string;
+  prevision_attendees: string[];
   notes: string;
 };
 
@@ -38,6 +39,7 @@ function toForm(event?: EventRow | null): FormState {
     status: event?.status ?? "mapeado",
     investment_value: event?.investment_value != null ? String(event.investment_value) : "",
     important_link: event?.important_link ?? "",
+    prevision_attendees: event?.prevision_attendees ?? [],
     notes: event?.notes ?? "",
   };
 }
@@ -113,6 +115,7 @@ export function EventFormDialog({
   defaultDate?: string;
 }) {
   const [form, setForm] = useState<FormState>(toForm(event));
+  const [attendeeInput, setAttendeeInput] = useState("");
   const [errors, setErrors] = useState<FormErrors>({
     investment_value: undefined,
     important_link: undefined,
@@ -123,9 +126,36 @@ export function EventFormDialog({
     if (open) {
       const base = toForm(event);
       setForm({ ...base, event_date: base.event_date || defaultDate || "" });
+      setAttendeeInput("");
       setErrors({ investment_value: undefined, important_link: undefined });
     }
   }, [open, event, defaultDate]);
+
+  function addAttendee() {
+    const attendee = attendeeInput.trim();
+    if (!attendee) return;
+
+    const alreadyAdded = form.prevision_attendees.some(
+      (name) => name.toLocaleLowerCase("pt-BR") === attendee.toLocaleLowerCase("pt-BR"),
+    );
+    if (alreadyAdded) {
+      toast.error("Essa pessoa já foi adicionada ao evento.");
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      prevision_attendees: [...current.prevision_attendees, attendee],
+    }));
+    setAttendeeInput("");
+  }
+
+  function removeAttendee(index: number) {
+    setForm((current) => ({
+      ...current,
+      prevision_attendees: current.prevision_attendees.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  }
 
   const mutation = useMutation({
     mutationFn: async ({
@@ -142,6 +172,7 @@ export function EventFormDialog({
         status: form.status,
         investment_value: investmentValue,
         important_link: importantLink,
+        prevision_attendees: form.prevision_attendees,
         notes: form.notes.trim() || null,
       };
       if (event) {
@@ -162,7 +193,7 @@ export function EventFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-canvas">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto bg-canvas">
         <DialogHeader>
           <DialogTitle className="font-display text-xl font-medium">
             {event ? "Editar evento" : "Novo evento"}
@@ -238,6 +269,52 @@ export function EventFormDialog({
             />
           </div>
 
+          <div>
+            <label className="label-caps mb-1 block">Representantes da Prevision</label>
+            <div className="flex gap-2">
+              <input
+                className={inputClass}
+                placeholder="Nome de quem estará presente"
+                value={attendeeInput}
+                onChange={(e) => setAttendeeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addAttendee();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={addAttendee}
+                className="shrink-0 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Adicionar
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Adicione uma pessoa por vez. Você pode incluir quantas precisar.</p>
+            {form.prevision_attendees.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {form.prevision_attendees.map((attendee, index) => (
+                  <span
+                    key={`${attendee}-${index}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-medium"
+                  >
+                    {attendee}
+                    <button
+                      type="button"
+                      aria-label={`Remover ${attendee}`}
+                      onClick={() => removeAttendee(index)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="label-caps mb-1 block">Valor do patrocínio</label>
@@ -278,10 +355,11 @@ export function EventFormDialog({
           </div>
 
           <div>
-            <label className="label-caps mb-1 block">Observações</label>
+            <label className="label-caps mb-1 block">Observações sobre o evento</label>
             <textarea
-              rows={3}
+              rows={4}
               className={inputClass}
+              placeholder="Inclua informações importantes, combinados, particularidades do evento, contatos ou qualquer contexto útil."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />

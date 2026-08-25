@@ -26,6 +26,7 @@ export type Database = {
           location: string | null
           name: string
           notes: string | null
+          prevision_attendees: string[]
           status: Database["public"]["Enums"]["event_status"]
           updated_at: string
         }
@@ -40,6 +41,7 @@ export type Database = {
           location?: string | null
           name: string
           notes?: string | null
+          prevision_attendees?: string[]
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
         }
@@ -54,6 +56,7 @@ export type Database = {
           location?: string | null
           name?: string
           notes?: string | null
+          prevision_attendees?: string[]
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
         }
