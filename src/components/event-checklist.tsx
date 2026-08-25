@@ -27,13 +27,20 @@ export function EventChecklist({ eventId }: { eventId: string }) {
   const [responsible, setResponsible] = useState("");
   const [parentId, setParentId] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editResponsible, setEditResponsible] = useState("");
+  const [editParentId, setEditParentId] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data: tasks = [] } = useQuery({
+  const tasksQuery = useQuery({
     queryKey: ["tasks", eventId],
     queryFn: () => fetchTasks(eventId),
   });
-  const { data: profiles = [] } = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
+  const profilesQuery = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
+
+  const tasks = tasksQuery.data ?? [];
+  const profiles = profilesQuery.data ?? [];
+  const parents = tasks.filter((task) => !task.parent_task_id);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["tasks", eventId] });
 
@@ -67,6 +74,36 @@ export function EventChecklist({ eventId }: { eventId: string }) {
     onError: () => toast.error("Não foi possível salvar a alteração."),
   });
 
+  const saveTask = useMutation({
+    mutationFn: async ({
+      id,
+      taskTitle,
+      responsibleId,
+      taskParentId,
+    }: {
+      id: string;
+      taskTitle: string;
+      responsibleId: string;
+      taskParentId: string;
+    }) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          title: taskTitle.trim(),
+          responsible_user_id: responsibleId || null,
+          parent_task_id: taskParentId || null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await invalidate();
+      setEditingId(null);
+      toast.success("Tarefa atualizada");
+    },
+    onError: () => toast.error("Não foi possível salvar a alteração."),
+  });
+
   const deleteTask = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("tasks").delete().eq("id", id);
@@ -79,16 +116,35 @@ export function EventChecklist({ eventId }: { eventId: string }) {
     onError: () => toast.error("Não foi possível excluir a tarefa."),
   });
 
-  const parents = tasks.filter((t) => !t.parent_task_id);
-  const nameOf = (id: string | null) => profiles.find((p) => p.id === id)?.name ?? null;
+  const nameOf = (id: string | null) => profiles.find((profile) => profile.id === id)?.name ?? null;
+  const hasChildren = (id: string) => tasks.some((task) => task.parent_task_id === id);
+
+  function beginEditing(task: TaskRow) {
+    setEditingId(task.id);
+    setEditTitle(task.title);
+    setEditResponsible(task.responsible_user_id ?? "");
+    setEditParentId(task.parent_task_id ?? "");
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    setEditTitle("");
+    setEditResponsible("");
+    setEditParentId("");
+  }
 
   function TaskLine({ task, isSub }: { task: TaskRow; isSub?: boolean }) {
     const editing = editingId === task.id;
+    const taskHasChildren = hasChildren(task.id);
+    const possibleParents = parents.filter((parent) => parent.id !== task.id);
+
     return (
       <div className={cn("group", task.completed && "opacity-50")}>
         <div className="flex items-start gap-4">
           <button
-            aria-label="Concluir tarefa"
+            role="checkbox"
+            aria-checked={task.completed}
+            aria-label={task.completed ? "Reabrir tarefa" : "Concluir tarefa"}
             onClick={() => updateTask.mutate({ id: task.id, values: { completed: !task.completed } })}
             className={cn(
               "mt-1 flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-input",
@@ -102,53 +158,63 @@ export function EventChecklist({ eventId }: { eventId: string }) {
             <div className="flex flex-1 flex-wrap items-center gap-2">
               <input
                 autoFocus
-                defaultValue={task.title}
-                onBlur={(e) => {
-                  const value = e.target.value.trim();
-                  if (value && value !== task.title)
-                    updateTask.mutate({ id: task.id, values: { title: value } });
-                  setEditingId(null);
-                }}
-                className={cn(inputClass, "flex-1")}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className={cn(inputClass, "min-w-48 flex-1")}
               />
               <select
-                value={task.responsible_user_id ?? ""}
-                onChange={(e) =>
-                  updateTask.mutate({
-                    id: task.id,
-                    values: { responsible_user_id: e.target.value || null },
-                  })
-                }
+                value={editResponsible}
+                onChange={(e) => setEditResponsible(e.target.value)}
                 className={inputClass}
+                disabled={profilesQuery.isError}
               >
                 <option value="">Sem responsável</option>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
+                {profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.name}
                   </option>
                 ))}
               </select>
-              {!isSub ? null : (
-                <select
-                  value={task.parent_task_id ?? ""}
-                  onChange={(e) =>
-                    updateTask.mutate({
-                      id: task.id,
-                      values: { parent_task_id: e.target.value || null },
-                    })
+              <select
+                value={taskHasChildren ? "" : editParentId}
+                onChange={(e) => setEditParentId(e.target.value)}
+                className={inputClass}
+                disabled={taskHasChildren}
+                title={taskHasChildren ? "Uma tarefa com subtarefas não pode virar subtarefa." : undefined}
+              >
+                <option value="">Nenhuma — tarefa principal</option>
+                {possibleParents.map((parent) => (
+                  <option key={parent.id} value={parent.id}>
+                    Subtarefa de: {parent.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!editTitle.trim()) {
+                    toast.error("Informe o nome da tarefa.");
+                    return;
                   }
-                  className={inputClass}
-                >
-                  <option value="">Tarefa principal</option>
-                  {parents
-                    .filter((p) => p.id !== task.id)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        Subtarefa de: {p.title}
-                      </option>
-                    ))}
-                </select>
-              )}
+                  saveTask.mutate({
+                    id: task.id,
+                    taskTitle: editTitle,
+                    responsibleId: editResponsible,
+                    taskParentId: taskHasChildren ? "" : editParentId,
+                  });
+                }}
+                disabled={saveTask.isPending}
+                className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+              >
+                Salvar
+              </button>
+              <button
+                type="button"
+                onClick={cancelEditing}
+                className="px-2 py-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Cancelar
+              </button>
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-between gap-3">
@@ -169,15 +235,15 @@ export function EventChecklist({ eventId }: { eventId: string }) {
                 ) : null}
                 <button
                   aria-label="Editar tarefa"
-                  onClick={() => setEditingId(task.id)}
-                  className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                  onClick={() => beginEditing(task)}
+                  className="text-muted-foreground opacity-100 transition-opacity hover:text-foreground [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100"
                 >
                   <Pencil className="size-3.5" />
                 </button>
                 <button
                   aria-label="Excluir tarefa"
                   onClick={() => setDeleteId(task.id)}
-                  className="text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                  className="text-muted-foreground opacity-100 transition-opacity hover:text-destructive [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100"
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -194,12 +260,21 @@ export function EventChecklist({ eventId }: { eventId: string }) {
       <div className="mb-8 flex items-center justify-between border-b border-foreground/10 pb-4">
         <h2 className="font-display text-xl font-medium">Checklist</h2>
         <button
-          onClick={() => setAdding((v) => !v)}
+          onClick={() => setAdding((value) => !value)}
           className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-widest text-accent"
         >
           <Plus className="size-3" /> Adicionar tarefa
         </button>
       </div>
+
+      {profilesQuery.isError ? (
+        <div className="mb-5 rounded-md border border-border bg-foreground/[0.02] p-4 text-sm text-muted-foreground">
+          Não foi possível carregar os responsáveis.{" "}
+          <button onClick={() => void profilesQuery.refetch()} className="font-medium text-accent hover:underline">
+            Tentar novamente
+          </button>
+        </div>
+      ) : null}
 
       {adding ? (
         <form
@@ -221,11 +296,12 @@ export function EventChecklist({ eventId }: { eventId: string }) {
             value={responsible}
             onChange={(e) => setResponsible(e.target.value)}
             className={inputClass}
+            disabled={profilesQuery.isError}
           >
             <option value="">Responsável</option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
+            {profiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.name}
               </option>
             ))}
           </select>
@@ -235,22 +311,35 @@ export function EventChecklist({ eventId }: { eventId: string }) {
             className={inputClass}
           >
             <option value="">Tarefa principal</option>
-            {parents.map((p) => (
-              <option key={p.id} value={p.id}>
-                Subtarefa de: {p.title}
+            {parents.map((parent) => (
+              <option key={parent.id} value={parent.id}>
+                Subtarefa de: {parent.title}
               </option>
             ))}
           </select>
           <button
             type="submit"
-            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            disabled={createTask.isPending}
+            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             Salvar
           </button>
         </form>
       ) : null}
 
-      {tasks.length === 0 ? (
+      {tasksQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando tarefas...</p>
+      ) : tasksQuery.isError ? (
+        <div className="rounded-md border border-dashed border-border bg-foreground/[0.02] p-4 text-center">
+          <p className="text-sm text-muted-foreground">Não foi possível carregar as tarefas.</p>
+          <button
+            onClick={() => void tasksQuery.refetch()}
+            className="mt-2 text-[11px] font-semibold uppercase tracking-widest text-accent hover:underline"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : tasks.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-foreground/[0.02] p-4">
           <p className="label-caps text-center">Este evento ainda não tem tarefas</p>
         </div>
@@ -259,12 +348,12 @@ export function EventChecklist({ eventId }: { eventId: string }) {
           {parents.map((task) => (
             <div key={task.id}>
               <TaskLine task={task} />
-              {tasks.filter((t) => t.parent_task_id === task.id).length > 0 ? (
+              {tasks.filter((item) => item.parent_task_id === task.id).length > 0 ? (
                 <div className="ml-8 mt-4 space-y-3 border-l border-border pl-4">
                   {tasks
-                    .filter((t) => t.parent_task_id === task.id)
-                    .map((sub) => (
-                      <TaskLine key={sub.id} task={sub} isSub />
+                    .filter((item) => item.parent_task_id === task.id)
+                    .map((subtask) => (
+                      <TaskLine key={subtask.id} task={subtask} isSub />
                     ))}
                 </div>
               ) : null}
