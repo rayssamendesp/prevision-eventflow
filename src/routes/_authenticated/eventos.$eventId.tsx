@@ -54,7 +54,12 @@ function EventDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
-  const { data: event, isLoading } = useQuery({
+  const {
+    data: event,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["event", eventId],
     queryFn: () => fetchEvent(eventId),
   });
@@ -74,6 +79,20 @@ function EventDetailPage() {
 
   if (isLoading) {
     return <p className="p-10 text-sm text-muted-foreground">Carregando evento...</p>;
+  }
+
+  if (isError) {
+    return (
+      <div className="p-10">
+        <p className="text-sm text-muted-foreground">Não foi possível carregar este evento.</p>
+        <button
+          onClick={() => void refetch()}
+          className="mt-4 text-sm font-medium text-accent hover:underline"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
   }
 
   if (!event) {
