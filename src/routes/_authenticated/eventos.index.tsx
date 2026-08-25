@@ -57,7 +57,7 @@ function EventCard({ event }: { event: EventRow }) {
       <div className="mb-6 flex items-start justify-between gap-3">
         <StatusBadge status={event.status} />
         <span className="text-[11px] font-medium text-muted-foreground">
-          {formatShortDate(event.event_date)}
+          {event.event_date ? formatShortDate(event.event_date) : "A confirmar"}
         </span>
       </div>
       <h3 className="mb-2 font-display text-lg font-medium leading-tight">{event.name}</h3>
@@ -86,23 +86,36 @@ function EventosPage() {
 
   const years = useMemo(() => {
     const set = new Set<number>([now.getFullYear(), year]);
-    events.forEach((event) => set.add(parseDate(event.event_date).getFullYear()));
+    events.forEach((event) => {
+      if (event.event_date) set.add(parseDate(event.event_date).getFullYear());
+    });
     return [...set].sort();
   }, [events, year, now]);
 
+  const matchesSearchAndStatus = (event: EventRow) => {
+    if (status !== "todos" && event.status !== status) return false;
+    if (search && !event.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  };
+
   const filtered = useMemo(() => {
     return events.filter((event) => {
+      if (!event.event_date) return false;
       const date = parseDate(event.event_date);
       if (date.getFullYear() !== year || date.getMonth() !== month) return false;
-      if (status !== "todos" && event.status !== status) return false;
-      if (search && !event.name.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
+      return matchesSearchAndStatus(event);
     });
   }, [events, year, month, status, search]);
+
+  const undatedFiltered = useMemo(
+    () => events.filter((event) => !event.event_date && matchesSearchAndStatus(event)),
+    [events, status, search],
+  );
 
   const monthCounts = useMemo(() => {
     const counts = new Array(12).fill(0) as number[];
     events.forEach((event) => {
+      if (!event.event_date) return;
       const date = parseDate(event.event_date);
       if (date.getFullYear() === year) {
         const monthIndex = date.getMonth();
@@ -113,8 +126,12 @@ function EventosPage() {
   }, [events, year]);
 
   const confirmedCount = events.filter(
-    (event) => event.status === "confirmado" && parseDate(event.event_date).getFullYear() === year,
+    (event) =>
+      event.status === "confirmado" &&
+      !!event.event_date &&
+      parseDate(event.event_date).getFullYear() === year,
   ).length;
+  const undatedCount = events.filter((event) => !event.event_date).length;
 
   return (
     <section className="mx-auto max-w-[1200px] px-6 py-10 lg:px-10 lg:py-12">
@@ -123,7 +140,7 @@ function EventosPage() {
           <h1 className="mb-2 font-display text-3xl font-medium leading-tight lg:text-4xl">
             Eventos Externos
           </h1>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
@@ -140,6 +157,12 @@ function EventosPage() {
               <span className="size-2 rounded-full bg-confirm" />
               {confirmedCount} confirmados
             </span>
+            {undatedCount > 0 ? (
+              <>
+                <span className="h-3 w-px bg-border" />
+                <span>{undatedCount} com data a confirmar</span>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -226,6 +249,25 @@ function EventosPage() {
           ))}
         </div>
       )}
+
+      {!isLoading && !isError && undatedFiltered.length > 0 ? (
+        <div className="mt-12 border-t border-border pt-8">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="label-caps">Data a confirmar</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Eventos mapeados que ainda não têm uma data definida.
+              </p>
+            </div>
+            <span className="text-xs font-medium text-muted-foreground">{undatedFiltered.length}</span>
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {undatedFiltered.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <EventFormDialog
         open={formOpen}
