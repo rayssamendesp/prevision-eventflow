@@ -10,6 +10,7 @@ export type EventRow = {
   status: EventStatus;
   investment_value: number | null;
   important_link: string | null;
+  prevision_attendees: string[];
   notes: string | null;
   archived: boolean;
   created_at: string;
