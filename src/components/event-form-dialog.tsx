@@ -18,6 +18,7 @@ const inputClass =
 type FormState = {
   name: string;
   event_date: string;
+  date_to_confirm: boolean;
   location: string;
   status: EventStatus;
   investment_value: string;
@@ -35,6 +36,7 @@ function toForm(event?: EventRow | null): FormState {
   return {
     name: event?.name ?? "",
     event_date: event?.event_date ?? "",
+    date_to_confirm: event ? !event.event_date : false,
     location: event?.location ?? "",
     status: event?.status ?? "mapeado",
     investment_value: event?.investment_value != null ? String(event.investment_value) : "",
@@ -125,7 +127,10 @@ export function EventFormDialog({
   useEffect(() => {
     if (open) {
       const base = toForm(event);
-      setForm({ ...base, event_date: base.event_date || defaultDate || "" });
+      setForm({
+        ...base,
+        event_date: event ? base.event_date : base.event_date || defaultDate || "",
+      });
       setAttendeeInput("");
       setErrors({ investment_value: undefined, important_link: undefined });
     }
@@ -167,7 +172,7 @@ export function EventFormDialog({
     }) => {
       const payload = {
         name: form.name.trim(),
-        event_date: form.event_date,
+        event_date: form.date_to_confirm ? null : form.event_date || null,
         location: form.location.trim() || null,
         status: form.status,
         investment_value: investmentValue,
@@ -199,7 +204,7 @@ export function EventFormDialog({
             {event ? "Editar evento" : "Novo evento"}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            Apenas nome, data e status são obrigatórios.
+            Nome e status são obrigatórios. A data pode ficar como a confirmar.
           </DialogDescription>
         </DialogHeader>
 
@@ -236,12 +241,22 @@ export function EventFormDialog({
             <div>
               <label className="label-caps mb-1 block">Data</label>
               <input
-                required
+                required={!form.date_to_confirm}
+                disabled={form.date_to_confirm}
                 type="date"
-                className={inputClass}
+                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-50`}
                 value={form.event_date}
                 onChange={(e) => setForm({ ...form, event_date: e.target.value })}
               />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={form.date_to_confirm}
+                  onChange={(e) => setForm({ ...form, date_to_confirm: e.target.checked })}
+                  className="size-4 rounded border-input"
+                />
+                Data a confirmar
+              </label>
             </div>
             <div>
               <label className="label-caps mb-1 block">Status</label>
@@ -292,7 +307,9 @@ export function EventFormDialog({
                 Adicionar
               </button>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Adicione uma pessoa por vez. Você pode incluir quantas precisar.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Adicione uma pessoa por vez. Você pode incluir quantas precisar.
+            </p>
             {form.prevision_attendees.length > 0 ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 {form.prevision_attendees.map((attendee, index) => (

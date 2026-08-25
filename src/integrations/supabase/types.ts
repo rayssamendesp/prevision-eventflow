@@ -19,7 +19,7 @@ export type Database = {
           archived: boolean
           created_at: string
           created_by: string | null
-          event_date: string
+          event_date: string | null
           id: string
           important_link: string | null
           investment_value: number | null
@@ -34,7 +34,7 @@ export type Database = {
           archived?: boolean
           created_at?: string
           created_by?: string | null
-          event_date: string
+          event_date?: string | null
           id?: string
           important_link?: string | null
           investment_value?: number | null
@@ -49,7 +49,7 @@ export type Database = {
           archived?: boolean
           created_at?: string
           created_by?: string | null
-          event_date?: string
+          event_date?: string | null
           id?: string
           important_link?: string | null
           investment_value?: number | null

@@ -83,7 +83,9 @@ function DescartadosPage() {
               <div className="mb-6 flex items-start justify-between gap-3">
                 <StatusBadge status={event.status} />
                 <span className="text-[11px] font-medium text-muted-foreground">
-                  {formatShortDate(event.event_date)} · {parseDate(event.event_date).getFullYear()}
+                  {event.event_date
+                    ? `${formatShortDate(event.event_date)} · ${parseDate(event.event_date).getFullYear()}`
+                    : "Data a confirmar"}
                 </span>
               </div>
               <h2 className="mb-2 font-display text-lg font-medium leading-tight">{event.name}</h2>

@@ -5,7 +5,7 @@ export type EventStatus = "mapeado" | "em_negociacao" | "confirmado" | "realizad
 export type EventRow = {
   id: string;
   name: string;
-  event_date: string;
+  event_date: string | null;
   location: string | null;
   status: EventStatus;
   investment_value: number | null;
@@ -102,7 +102,7 @@ export async function fetchEvents(archived: boolean) {
     .from("events")
     .select("*")
     .eq("archived", archived)
-    .order("event_date", { ascending: true });
+    .order("event_date", { ascending: true, nullsFirst: false });
   if (error) throw error;
   return (data ?? []) as EventRow[];
 }
