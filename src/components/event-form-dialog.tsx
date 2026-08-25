@@ -26,8 +26,8 @@ type FormState = {
 };
 
 type FormErrors = {
-  investment_value?: string;
-  important_link?: string;
+  investment_value: string | undefined;
+  important_link: string | undefined;
 };
 
 function toForm(event?: EventRow | null): FormState {
@@ -113,14 +113,17 @@ export function EventFormDialog({
   defaultDate?: string;
 }) {
   const [form, setForm] = useState<FormState>(toForm(event));
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<FormErrors>({
+    investment_value: undefined,
+    important_link: undefined,
+  });
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (open) {
       const base = toForm(event);
       setForm({ ...base, event_date: base.event_date || defaultDate || "" });
-      setErrors({});
+      setErrors({ investment_value: undefined, important_link: undefined });
     }
   }, [open, event, defaultDate]);
 
