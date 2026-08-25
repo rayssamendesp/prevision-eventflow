@@ -104,7 +104,10 @@ function EventosPage() {
     const counts = new Array(12).fill(0) as number[];
     events.forEach((event) => {
       const date = parseDate(event.event_date);
-      if (date.getFullYear() === year) counts[date.getMonth()] += 1;
+      if (date.getFullYear() === year) {
+        const monthIndex = date.getMonth();
+        counts[monthIndex] = (counts[monthIndex] ?? 0) + 1;
+      }
     });
     return counts;
   }, [events, year]);
