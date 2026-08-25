@@ -127,7 +127,9 @@ function EventDetailPage() {
 
             <div className="mt-6 space-y-6">
               <div className="grid grid-cols-2 gap-4 border-b border-border pb-6">
-                <Field label="Data">{formatLongDate(event.event_date)}</Field>
+                <Field label="Data">
+                  {event.event_date ? formatLongDate(event.event_date) : "A confirmar"}
+                </Field>
                 {event.location ? <Field label="Local">{event.location}</Field> : null}
               </div>
               {value || event.important_link ? (
@@ -195,7 +197,7 @@ function EventDetailPage() {
 
       <EventFormDialog open={editOpen} onOpenChange={setEditOpen} event={event} />
 
-      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+      <AlertDialog open={discardOpen} onOpenChange={(open) => !open && setDiscardOpen(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Descartar este evento?</AlertDialogTitle>
