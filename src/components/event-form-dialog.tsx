@@ -70,7 +70,7 @@ function parseInvestment(input: string): { value: number | null; error?: string 
       }
     } else {
       const decimals = parts[1]?.length ?? 0;
-      if (decimals === 3 && parts[0].length <= 3) {
+      if (decimals === 3 && (parts[0]?.length ?? 0) <= 3) {
         cleaned = parts.join("");
       } else if (decimals < 1 || decimals > 2) {
         return { value: null, error: "Informe um valor monetário válido." };
