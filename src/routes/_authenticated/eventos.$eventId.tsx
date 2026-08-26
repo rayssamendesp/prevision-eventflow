@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
+import { EventAttachments } from "@/components/event-attachments";
 import { EventChecklist } from "@/components/event-checklist";
 import { EventFormDialog } from "@/components/event-form-dialog";
 import { StatusBadge } from "@/components/status-badge";
@@ -224,7 +225,8 @@ function EventDetailPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-7">
+        <div className="space-y-12 lg:col-span-7">
+          <EventAttachments eventId={event.id} />
           <EventChecklist eventId={event.id} />
         </div>
       </div>
