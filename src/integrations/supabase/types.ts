@@ -20,6 +20,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           event_date: string | null
+          external_contact_email: string | null
+          external_contact_name: string | null
+          external_contact_phone: string | null
           id: string
           important_link: string | null
           investment_value: number | null
@@ -35,6 +38,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           event_date?: string | null
+          external_contact_email?: string | null
+          external_contact_name?: string | null
+          external_contact_phone?: string | null
           id?: string
           important_link?: string | null
           investment_value?: number | null
@@ -50,6 +56,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           event_date?: string | null
+          external_contact_email?: string | null
+          external_contact_name?: string | null
+          external_contact_phone?: string | null
           id?: string
           important_link?: string | null
           investment_value?: number | null
