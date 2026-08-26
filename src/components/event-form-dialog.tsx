@@ -23,6 +23,9 @@ type FormState = {
   status: EventStatus;
   investment_value: string;
   important_link: string;
+  external_contact_name: string;
+  external_contact_email: string;
+  external_contact_phone: string;
   prevision_attendees: string[];
   notes: string;
 };
@@ -41,6 +44,9 @@ function toForm(event?: EventRow | null): FormState {
     status: event?.status ?? "mapeado",
     investment_value: event?.investment_value != null ? String(event.investment_value) : "",
     important_link: event?.important_link ?? "",
+    external_contact_name: event?.external_contact_name ?? "",
+    external_contact_email: event?.external_contact_email ?? "",
+    external_contact_phone: event?.external_contact_phone ?? "",
     prevision_attendees: event?.prevision_attendees ?? [],
     notes: event?.notes ?? "",
   };
@@ -177,6 +183,9 @@ export function EventFormDialog({
         status: form.status,
         investment_value: investmentValue,
         important_link: importantLink,
+        external_contact_name: form.external_contact_name.trim() || null,
+        external_contact_email: form.external_contact_email.trim() || null,
+        external_contact_phone: form.external_contact_phone.trim() || null,
         prevision_attendees: form.prevision_attendees,
         notes: form.notes.trim() || null,
       };
@@ -284,6 +293,44 @@ export function EventFormDialog({
             />
           </div>
 
+          <div className="rounded-md border border-border p-4">
+            <p className="label-caps mb-3">Contato responsável pelo evento</p>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">Nome</label>
+                <input
+                  className={inputClass}
+                  placeholder="Nome do contato externo"
+                  value={form.external_contact_name}
+                  onChange={(e) => setForm({ ...form, external_contact_name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">E-mail</label>
+                  <input
+                    type="email"
+                    className={inputClass}
+                    placeholder="contato@empresa.com"
+                    value={form.external_contact_email}
+                    onChange={(e) => setForm({ ...form, external_contact_email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Telefone / WhatsApp</label>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    className={inputClass}
+                    placeholder="(48) 99999-9999"
+                    value={form.external_contact_phone}
+                    onChange={(e) => setForm({ ...form, external_contact_phone: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="label-caps mb-1 block">Representantes da Prevision</label>
             <div className="flex gap-2">
@@ -376,7 +423,7 @@ export function EventFormDialog({
             <textarea
               rows={4}
               className={inputClass}
-              placeholder="Inclua informações importantes, combinados, particularidades do evento, contatos ou qualquer contexto útil."
+              placeholder="Inclua informações importantes, combinados, particularidades do evento ou qualquer contexto útil."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
