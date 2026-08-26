@@ -108,6 +108,12 @@ function EventDetailPage() {
 
   const value = formatCurrency(event.investment_value);
   const attendees = event.prevision_attendees ?? [];
+  const hasExternalContact = Boolean(
+    event.external_contact_name || event.external_contact_email || event.external_contact_phone,
+  );
+  const contactPhoneHref = event.external_contact_phone
+    ? event.external_contact_phone.replace(/[^\d+]/g, "")
+    : null;
 
   return (
     <section className="mx-auto max-w-[1200px] px-6 py-10 lg:px-10 lg:py-12">
@@ -132,6 +138,34 @@ function EventDetailPage() {
                 </Field>
                 {event.location ? <Field label="Local">{event.location}</Field> : null}
               </div>
+
+              {hasExternalContact ? (
+                <div className="border-b border-border pb-6">
+                  <p className="label-caps mb-2">Contato responsável pelo evento</p>
+                  {event.external_contact_name ? (
+                    <p className="text-sm font-medium">{event.external_contact_name}</p>
+                  ) : null}
+                  <div className="mt-2 flex flex-col gap-1 text-sm">
+                    {event.external_contact_email ? (
+                      <a
+                        href={`mailto:${event.external_contact_email}`}
+                        className="w-fit text-accent underline decoration-accent/20 underline-offset-4"
+                      >
+                        {event.external_contact_email}
+                      </a>
+                    ) : null}
+                    {event.external_contact_phone && contactPhoneHref ? (
+                      <a
+                        href={`tel:${contactPhoneHref}`}
+                        className="w-fit text-accent underline decoration-accent/20 underline-offset-4"
+                      >
+                        {event.external_contact_phone}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
               {value || event.important_link ? (
                 <div className="grid grid-cols-2 gap-4 border-b border-border pb-6">
                   {value ? <Field label="Investimento">{value}</Field> : null}
