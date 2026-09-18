@@ -71,6 +71,132 @@ export type Database = {
         }
         Relationships: []
       }
+      roi_events: {
+        Row: {
+          created_at: string
+          event_date: string | null
+          id: string
+          kind: string
+          mqls_evolved: number
+          name: string
+          notes: string | null
+          sponsored_event_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_date?: string | null
+          id?: string
+          kind: string
+          mqls_evolved?: number
+          name: string
+          notes?: string | null
+          sponsored_event_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_date?: string | null
+          id?: string
+          kind?: string
+          mqls_evolved?: number
+          name?: string
+          notes?: string | null
+          sponsored_event_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_events_sponsored_event_id_fkey"
+            columns: ["sponsored_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roi_financial_entries: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          direction: string
+          id: string
+          roi_event_id: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          description?: string | null
+          direction: string
+          id?: string
+          roi_event_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          direction?: string
+          id?: string
+          roi_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_financial_entries_roi_event_id_fkey"
+            columns: ["roi_event_id"]
+            isOneToOne: false
+            referencedRelation: "roi_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roi_sales: {
+        Row: {
+          client_count: number
+          client_name: string | null
+          close_date: string | null
+          created_at: string
+          id: string
+          implementation: number
+          mrr: number
+          mrr_year_override: number | null
+          roi_event_id: string
+        }
+        Insert: {
+          client_count?: number
+          client_name?: string | null
+          close_date?: string | null
+          created_at?: string
+          id?: string
+          implementation?: number
+          mrr?: number
+          mrr_year_override?: number | null
+          roi_event_id: string
+        }
+        Update: {
+          client_count?: number
+          client_name?: string | null
+          close_date?: string | null
+          created_at?: string
+          id?: string
+          implementation?: number
+          mrr?: number
+          mrr_year_override?: number | null
+          roi_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_sales_roi_event_id_fkey"
+            columns: ["roi_event_id"]
+            isOneToOne: false
+            referencedRelation: "roi_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
