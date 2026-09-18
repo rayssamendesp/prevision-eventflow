@@ -21,16 +21,16 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/eventos/")({
   head: () => ({
     meta: [
-      { title: "Eventos Externos | Gestão de Eventos Prevision" },
+      { title: "Eventos patrocinados | Gestão de Eventos Prevision" },
       {
         name: "description",
         content:
-          "Visualização anual dos eventos externos da Prevision organizada por mês, com status e checklist.",
+          "Visualização anual dos eventos patrocinados da Prevision organizada por mês, com status e checklist.",
       },
-      { property: "og:title", content: "Eventos Externos | Gestão de Eventos Prevision" },
+      { property: "og:title", content: "Eventos patrocinados | Gestão de Eventos Prevision" },
       {
         property: "og:description",
-        content: "Visualização anual dos eventos externos da Prevision organizada por mês.",
+        content: "Visualização anual dos eventos patrocinados da Prevision organizada por mês.",
       },
     ],
   }),
@@ -188,6 +188,12 @@ function EventosPage() {
               </option>
             ))}
           </select>
+          <Link
+            to="/descartados"
+            className="rounded-md border border-input bg-canvas px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Descartados
+          </Link>
           <button
             onClick={() => setFormOpen(true)}
             className="flex items-center gap-2 rounded-md bg-primary py-2 pl-2 pr-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
