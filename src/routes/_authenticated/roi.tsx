@@ -6,6 +6,7 @@ import {
   BarChart3,
   ChevronDown,
   Database,
+  Download,
   Pencil,
   Plus,
   Trash2,
@@ -22,6 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { RoiEventDialog } from "@/components/roi-event-dialog";
+import { downloadRoiHtml } from "@/lib/roi-export";
 import {
   calculateRoiMetrics,
   deleteRoiEvent,
@@ -271,6 +273,20 @@ function RoiPage() {
     onError: () => toast.error("Não foi possível remover o evento do ROI."),
   });
 
+  const exportHtml = useMutation({
+    mutationFn: async () => {
+      // Fetch both categories afresh so the download reflects the saved database,
+      // regardless of which tab is open or what the React Query cache contains.
+      const [cafes, sponsored] = await Promise.all([
+        fetchRoiBundles("cafe"),
+        fetchRoiBundles("sponsored"),
+      ]);
+      downloadRoiHtml(cafes, sponsored, kind, year);
+    },
+    onSuccess: () => toast.success("Relatório HTML exportado com sucesso"),
+    onError: () => toast.error("Não foi possível exportar o HTML. Tente novamente."),
+  });
+
   function openCreate() {
     setEditingBundle(null);
     setEditorOpen(true);
@@ -306,6 +322,15 @@ function RoiPage() {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() => exportHtml.mutate()}
+            disabled={exportHtml.isPending}
+            className="inline-flex items-center gap-2 rounded-md border border-input bg-canvas px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-wait disabled:opacity-60"
+          >
+            <Download className="size-4" />
+            {exportHtml.isPending ? "Gerando HTML..." : "Exportar HTML"}
+          </button>
           <button
             type="button"
             onClick={() => setManagement((current) => !current)}
