@@ -76,10 +76,10 @@ export async function publishRoiReport(initialYear = new Date().getFullYear()) {
     fetchRoiBundles("sponsored"),
   ]);
   const html = generateRoiHtml(cafes, sponsored, "cafe", initialYear);
-  const body = new Blob(["\uFEFF", html], { type: "text/html;charset=utf-8" });
+  const body = new Blob(["\uFEFF", html], { type: "text/html" });
   const { error } = await supabase.storage.from(REPORT_BUCKET).upload(REPORT_PATH, body, {
     upsert: true,
-    contentType: "text/html;charset=utf-8",
+    contentType: "text/html",
     cacheControl: "0",
   });
   if (error) throw error;
