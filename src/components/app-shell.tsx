@@ -8,7 +8,6 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex-1 space-y-1 px-3">
       {[
-        { to: "/eventos", label: "Eventos patrocinados" },
         { to: "/roi", label: "ROI dos eventos" },
       ].map((item) => (
         <Link
