@@ -6,7 +6,7 @@ import {
   BarChart3,
   ChevronDown,
   Database,
-  Download,
+  ExternalLink,
   Pencil,
   Plus,
   Trash2,
@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { RoiEventDialog } from "@/components/roi-event-dialog";
-import { downloadRoiHtml } from "@/lib/roi-export";
+import { publishRoiReport } from "@/lib/roi-report-publish";
 import {
   calculateRoiMetrics,
   deleteRoiEvent,
@@ -263,29 +263,43 @@ function RoiPage() {
 
   const selected = yearBundles.find((bundle) => bundle.id === selectedId) ?? null;
 
+  async function refreshPublishedReport() {
+    try {
+      await publishRoiReport(year);
+    } catch {
+      toast.warning("Os dados foram salvos, mas o report ainda não foi atualizado.");
+    }
+  }
+
   const remove = useMutation({
     mutationFn: deleteRoiEvent,
     onSuccess: async () => {
       setSelectedId(null);
       await queryClient.invalidateQueries({ queryKey: ["roi"] });
+      await refreshPublishedReport();
       toast.success("Evento removido do ROI");
     },
     onError: () => toast.error("Não foi possível remover o evento do ROI."),
   });
 
-  const exportHtml = useMutation({
-    mutationFn: async () => {
-      // Fetch both categories afresh so the download reflects the saved database,
-      // regardless of which tab is open or what the React Query cache contains.
-      const [cafes, sponsored] = await Promise.all([
-        fetchRoiBundles("cafe"),
-        fetchRoiBundles("sponsored"),
-      ]);
-      downloadRoiHtml(cafes, sponsored, kind, year);
-    },
-    onSuccess: () => toast.success("Relatório HTML exportado com sucesso"),
-    onError: () => toast.error("Não foi possível exportar o HTML. Tente novamente."),
+  const openReport = useMutation({
+    mutationFn: () => publishRoiReport(year),
+    onError: () => toast.error("Não foi possível atualizar o report."),
   });
+
+  function openPublishedReport() {
+    const reportTab = window.open("about:blank", "_blank");
+    openReport.mutate(undefined, {
+      onSuccess: (url) => {
+        if (reportTab) {
+          reportTab.location.href = url;
+          return;
+        }
+        window.location.href = url;
+      },
+      onError: () => reportTab?.close(),
+    });
+  }
 
   function openCreate() {
     setEditingBundle(null);
@@ -324,12 +338,12 @@ function RoiPage() {
           </select>
           <button
             type="button"
-            onClick={() => exportHtml.mutate()}
-            disabled={exportHtml.isPending}
+            onClick={openPublishedReport}
+            disabled={openReport.isPending}
             className="inline-flex items-center gap-2 rounded-md border border-input bg-canvas px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-wait disabled:opacity-60"
           >
-            <Download className="size-4" />
-            {exportHtml.isPending ? "Gerando HTML..." : "Exportar HTML"}
+            <ExternalLink className="size-4" />
+            {openReport.isPending ? "Atualizando report..." : "Abrir report"}
           </button>
           <button
             type="button"
@@ -627,6 +641,7 @@ function RoiPage() {
         kind={kind}
         bundle={editingBundle}
         sponsoredOptions={sponsoredOptionsQuery.data ?? []}
+        onSaved={refreshPublishedReport}
       />
     </section>
   );
