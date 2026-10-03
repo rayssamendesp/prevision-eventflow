@@ -294,12 +294,13 @@ function RoiPage() {
   function openPublishedReport() {
     const reportTab = window.open("about:blank", "_blank");
     openReport.mutate(undefined, {
-      onSuccess: (url) => {
+      onSuccess: () => {
+        const reportUrl = `${window.location.origin}/report-eventos`;
         if (reportTab) {
-          reportTab.location.href = url;
+          reportTab.location.href = reportUrl;
           return;
         }
-        window.location.href = url;
+        window.location.href = reportUrl;
       },
       onError: () => reportTab?.close(),
     });
