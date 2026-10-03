@@ -24,10 +24,10 @@ function NotFoundComponent() {
         </p>
         <div className="mt-6">
           <Link
-            to="/eventos"
+            to="/roi"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Ir para Eventos
+            Ir para ROI
           </Link>
         </div>
       </div>
@@ -49,7 +49,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Não foi possível carregar
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Algo deu errado. Tente novamente ou volte para a lista de eventos.
+          Algo deu errado. Tente novamente ou volte para o ROI dos eventos.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -62,7 +62,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             Tentar novamente
           </button>
           <a
-            href="/eventos"
+            href="/roi"
             className="inline-flex items-center justify-center rounded-md border border-input bg-canvas px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-panel"
           >
             Eventos
@@ -78,17 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Gestão de Eventos Externos | Prevision" },
+      { title: "Gestão de ROI dos Eventos | Prevision" },
       {
         name: "description",
         content:
-          "Ferramenta interna da Prevision para organizar eventos externos patrocinados e acompanhar o checklist de cada evento.",
+          "Ferramenta interna da Prevision para atualizar e acompanhar o ROI dos eventos.",
       },
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Gestão de Eventos Externos | Prevision" },
       {
         property: "og:description",
-        content: "Organize eventos externos patrocinados pela Prevision e acompanhe as tarefas.",
+        content: "Acompanhe e atualize os dados de ROI dos eventos Prevision.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
