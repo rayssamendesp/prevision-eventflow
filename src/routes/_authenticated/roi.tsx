@@ -641,7 +641,6 @@ function RoiPage() {
         kind={kind}
         bundle={editingBundle}
         sponsoredOptions={sponsoredOptionsQuery.data ?? []}
-        onSaved={refreshPublishedReport}
       />
     </section>
   );
