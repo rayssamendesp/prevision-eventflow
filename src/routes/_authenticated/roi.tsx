@@ -284,7 +284,7 @@ function RoiPage() {
 
   const openReport = useMutation({
     mutationFn: () => publishRoiReport(year),
-    onError: () => toast.error("Não foi possível atualizar o report."),
+    onError: (error) => {\n      const message = error instanceof Error ? error.message : "Erro desconhecido";\n      console.error("[Report] Falha ao publicar:", error);\n      toast.error(`Não foi possível atualizar o report: ${message}`);\n    },
   });
 
   function openPublishedReport() {
