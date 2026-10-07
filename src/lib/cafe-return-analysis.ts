@@ -83,7 +83,7 @@ function sponsorshipOf(bundle: RoiEventBundle) {
 
 function mqlMap2026() {
   return new Map(
-    CAFE_ANALYSIS_2026.cafes.map((row) => [fold(String(row[0])), Number(row[1])]),
+    CAFE_ANALYSIS_2026.cafes.map((row) => [fold(String(row[0])), Number(row[1])] as const),
   );
 }
 
@@ -98,27 +98,36 @@ function average(total: number, count: number) {
 
 export function buildCafeReturnAnalysis(cafeBundles: RoiEventBundle[]) {
   const mqls2026 = mqlMap2026();
-  const cafes2026 = cafeBundles
+  const cafes2026All = cafeBundles
     .filter((bundle) => !bundle.event_date || Number(bundle.event_date.slice(0, 4)) === 2026)
     .map((bundle) => {
       const location = normalizeLocation(bundle.name);
       const metrics = calculateRoiMetrics(bundle);
+      const matchedMqls = mqls2026.get(fold(location));
       return {
         year: 2026 as const,
         location,
         region: REGION_BY_LOCATION[location] || "Região não classificada",
         label: bundle.name,
-        mqls: Number(mqls2026.get(fold(location)) || 0),
+        mqls: matchedMqls == null ? null : Number(matchedMqls),
         clients: Number(metrics.clientCount || 0),
         mrr: Number(metrics.mrr || 0),
         sponsorship: sponsorshipOf(bundle),
       };
     });
 
+  const cafes2026 = cafes2026All.flatMap((item) =>
+    item.mqls == null ? [] : [{ ...item, mqls: item.mqls }],
+  );
+
   const allEditions = [...CAFE_2025, ...cafes2026];
+  const allEditionsForSponsorship = [...CAFE_2025, ...cafes2026All];
   const geolocatedEditions = allEditions.filter((item) => item.location && item.region);
   const excludedGeographic = allEditions
     .filter((item) => !item.location || !item.region)
+    .map((item) => item.label);
+  const excludedWithoutMql = cafes2026All
+    .filter((item) => item.mqls == null)
     .map((item) => item.label);
 
   const locationMap = new Map<string, {
@@ -171,13 +180,13 @@ export function buildCafeReturnAnalysis(cafeBundles: RoiEventBundle[]) {
   const maxMrr = Math.max(...locationsBase.map((item) => item.mrrPerEdition), 1);
   const maxSponsor = Math.max(...locationsBase.map((item) => item.sponsorshipPerEdition), 1);
 
-  const totalSponsorshipAll = allEditions.reduce((sum, item) => sum + item.sponsorship, 0);
-  const sponsoredEditionsAll = allEditions.filter((item) => item.sponsorship > 0);
+  const totalSponsorshipAll = allEditionsForSponsorship.reduce((sum, item) => sum + item.sponsorship, 0);
+  const sponsoredEditionsAll = allEditionsForSponsorship.filter((item) => item.sponsorship > 0);
   const totalSponsorship2025 = CAFE_2025.reduce((sum, item) => sum + item.sponsorship, 0);
   const sponsored2025 = CAFE_2025.filter((item) => item.sponsorship > 0);
-  const totalSponsorship2026 = cafes2026.reduce((sum, item) => sum + item.sponsorship, 0);
-  const sponsored2026 = cafes2026.filter((item) => item.sponsorship > 0);
-  const sponsorshipOverallAverage = average(totalSponsorshipAll, allEditions.length);
+  const totalSponsorship2026 = cafes2026All.reduce((sum, item) => sum + item.sponsorship, 0);
+  const sponsored2026 = cafes2026All.filter((item) => item.sponsorship > 0);
+  const sponsorshipOverallAverage = average(totalSponsorshipAll, allEditionsForSponsorship.length);
 
   const locations = locationsBase
     .map((item) => {
@@ -240,7 +249,7 @@ export function buildCafeReturnAnalysis(cafeBundles: RoiEventBundle[]) {
     source2025: "RÓI CAFÉ PREVISION - 2025.xlsx",
     source2026: "ROI 2026 da plataforma + base comercial de MQLs 2026",
     summary: {
-      editionsAll: allEditions.length,
+      editionsAll: allEditionsForSponsorship.length,
       geolocatedEditions: geolocatedEditions.length,
       geolocatedMqls,
       geolocatedMrr,
@@ -252,7 +261,7 @@ export function buildCafeReturnAnalysis(cafeBundles: RoiEventBundle[]) {
         sponsoredEditionsAll.length,
       ),
       sponsorshipAverage2025: average(totalSponsorship2025, CAFE_2025.length),
-      sponsorshipAverage2026: average(totalSponsorship2026, cafes2026.length),
+      sponsorshipAverage2026: average(totalSponsorship2026, cafes2026All.length),
       sponsorshipSponsoredCount: sponsoredEditionsAll.length,
     },
     weights: {
@@ -264,12 +273,14 @@ export function buildCafeReturnAnalysis(cafeBundles: RoiEventBundle[]) {
     regions,
     recurringLocations: locations.filter((item) => item.years.length > 1),
     excludedGeographic,
+    excludedWithoutMql,
     methodology: [
       "O índice de revisita é comparativo e não substitui o ROI. Ele pondera MQLs por edição (40%), MRR/NMRR por edição (40%) e patrocínio médio por edição (20%), normalizando cada indicador pelo maior valor observado entre as praças.",
       "Em 2025, a planilha usa a métrica “MQLs que evoluíram no funil”; em 2026, a análise usa os MQLs da base comercial dos Cafés. Por isso, o cruzamento entre anos deve ser lido como sinal histórico, não como uma série perfeitamente homogênea.",
       "Para receita recorrente, 2025 utiliza NMRR e 2026 utiliza MRR. Os dois valores são reunidos como receita mensal recorrente atribuída ao Café, preservando a identificação da fonte em metodologia.",
       "Patrocínio médio por Café inclui edições sem patrocínio como valor zero. A média entre somente edições patrocinadas é mostrada separadamente.",
       "O Café Bim + Lean de 2025 não possui praça identificada na planilha fornecida e, por isso, fica fora dos rankings geográficos, embora permaneça na média geral de patrocínio.",
+      "Edições de 2026 que estejam na plataforma, mas ainda não tenham MQL correspondente na base comercial histórica, permanecem na média de patrocínio, porém ficam fora do índice de revisita até que esse dado seja incorporado.",
     ],
   };
 }
